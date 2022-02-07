@@ -4,6 +4,7 @@ import net.minecraft.core.BlockPos;
 import net.minecraft.core.Direction;
 import net.minecraft.network.chat.TranslatableComponent;
 import net.minecraft.server.level.ServerLevel;
+import net.minecraft.server.level.WorldGenRegion;
 import net.minecraft.world.InteractionHand;
 import net.minecraft.world.InteractionResult;
 import net.minecraft.world.entity.item.FallingBlockEntity;
@@ -53,7 +54,7 @@ public class MoyaiBlock extends FallingBlock {
     public InteractionResult use(BlockState pState, Level pLevel, BlockPos pPos, Player pPlayer, InteractionHand pHand, BlockHitResult pHit) {
         if (pLevel.isClientSide) {
             long time = pLevel.getDayTime();
-            if (time - LAST_GREETED_TIME >= 24000) {
+            if (Math.abs(time - LAST_GREETED_TIME) >= 12000) {
                 LAST_GREETED_TIME = time;
                 pPlayer.displayClientMessage(new TranslatableComponent("message.moyai.angelo"), true);
             }
@@ -66,7 +67,7 @@ public class MoyaiBlock extends FallingBlock {
     //only called by worldgen
     @Override
     public boolean canSurvive(BlockState state, LevelReader level, BlockPos pos) {
-        if (!(level instanceof ServerLevel)) {
+        if (level instanceof WorldGenRegion) {
             //if this is called during world gen
             Direction direction = state.getValue(FACING);
             for (Direction dir : Direction.Plane.HORIZONTAL) {
