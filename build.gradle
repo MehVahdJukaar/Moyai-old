@@ -9,6 +9,7 @@ buildscript {
     }
     dependencies {
         classpath group: 'net.minecraftforge.gradle', name: 'ForgeGradle', version: '5.1.+', changing: true
+        classpath 'org.spongepowered:mixingradle:0.7-SNAPSHOT'
         classpath 'org.parchmentmc:librarian:1.+'
     }
 }
@@ -18,10 +19,15 @@ apply plugin: 'eclipse'
 apply plugin: 'maven-publish'
 
 apply plugin: 'org.parchmentmc.librarian.forgegradle'
+apply plugin: 'org.spongepowered.mixin'
 apply from: 'https://raw.githubusercontent.com/SizableShrimp/Forge-Class-Remapper/main/classremapper.gradle'
 
+mixin {
+    add sourceSets.main, "moyai.refmap.json"
+}
 
-version = '1.18-1.0.0'
+
+version = '1.18-1.1.0'
 group = 'net.mehvahdjukaar.moyai' // http://maven.apache.org/guides/mini/guide-naming-conventions.html
 archivesBaseName = 'moyai'
 
@@ -41,7 +47,9 @@ minecraft {
     runs {
         client {
 
-
+            property 'mixin.env.refMapRemappingFile', "${buildDir}/createSrgToMcp/output.srg"
+            property 'mixin.env.remapRefMap', 'true'
+            arg "-mixin.config=moyai.mixins.json".toString()
 
             workingDirectory project.file('run')
 
@@ -106,7 +114,7 @@ dependencies {
     implementation fg.deobf("curse.maven:configured-457570:3546349")
     implementation fg.deobf("curse.maven:jei-238222:3550020")
   //  implementation fg.deobf("curse.maven:alexs-mobs-426558:3603683")
-
+    annotationProcessor 'org.spongepowered:mixin:0.8.5:processor'
 }
 
 // Example for how to get properties into the manifest for reading by the runtime..
@@ -119,7 +127,8 @@ jar {
                 "Implementation-Title": project.name,
                 "Implementation-Version": "${version}",
                 "Implementation-Vendor" :"examplemodsareus",
-                "Implementation-Timestamp": new Date().format("yyyy-MM-dd'T'HH:mm:ssZ")
+                "Implementation-Timestamp": new Date().format("yyyy-MM-dd'T'HH:mm:ssZ"),
+                "MixinConfigs": "moyai.mixins.json"
         ])
     }
 }

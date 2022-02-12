@@ -1,30 +1,69 @@
 package net.mehvahdjukaar.moyai;
 
+import net.minecraft.advancements.CriteriaTriggers;
 import net.minecraft.core.BlockPos;
 import net.minecraft.core.Direction;
 import net.minecraft.network.chat.TranslatableComponent;
 import net.minecraft.server.level.ServerLevel;
+import net.minecraft.server.level.ServerPlayer;
 import net.minecraft.server.level.WorldGenRegion;
+import net.minecraft.sounds.SoundSource;
+import net.minecraft.util.StringRepresentable;
 import net.minecraft.world.InteractionHand;
 import net.minecraft.world.InteractionResult;
+import net.minecraft.world.entity.EntityType;
+import net.minecraft.world.entity.EquipmentSlot;
+import net.minecraft.world.entity.LivingEntity;
+import net.minecraft.world.entity.animal.IronGolem;
 import net.minecraft.world.entity.item.FallingBlockEntity;
 import net.minecraft.world.entity.player.Player;
+import net.minecraft.world.item.ItemStack;
 import net.minecraft.world.item.context.BlockPlaceContext;
 import net.minecraft.world.level.BlockGetter;
 import net.minecraft.world.level.Level;
+import net.minecraft.world.level.LevelAccessor;
 import net.minecraft.world.level.LevelReader;
 import net.minecraft.world.level.block.*;
 import net.minecraft.world.level.block.state.BlockBehaviour;
 import net.minecraft.world.level.block.state.BlockState;
 import net.minecraft.world.level.block.state.StateDefinition;
+import net.minecraft.world.level.block.state.pattern.BlockInWorld;
+import net.minecraft.world.level.block.state.pattern.BlockPattern;
+import net.minecraft.world.level.block.state.pattern.BlockPatternBuilder;
+import net.minecraft.world.level.block.state.predicate.BlockMaterialPredicate;
+import net.minecraft.world.level.block.state.predicate.BlockStatePredicate;
 import net.minecraft.world.level.block.state.properties.BlockStateProperties;
 import net.minecraft.world.level.block.state.properties.DirectionProperty;
+import net.minecraft.world.level.block.state.properties.EnumProperty;
+import net.minecraft.world.level.material.Material;
 import net.minecraft.world.phys.BlockHitResult;
+
+import javax.annotation.Nullable;
+import java.util.Locale;
+import java.util.Random;
 
 public class MoyaiBlock extends FallingBlock {
     public static final DirectionProperty FACING = BlockStateProperties.HORIZONTAL_FACING;
+    public static final EnumProperty<RotationMode> MODE = EnumProperty.create("mode", RotationMode.class);
+
+
+    private enum RotationMode implements StringRepresentable {
+        ROTATING_LEFT, ROTATING_RIGHT, STATIC;
+
+        public String toString() {
+            return this.getSerializedName();
+        }
+
+        public String getSerializedName() {
+            return this.name().toLowerCase(Locale.ROOT);
+        }
+    }
+
     protected MoyaiBlock() {
-        super(BlockBehaviour.Properties.copy(Blocks.BASALT).strength(5, 4));
+        super(BlockBehaviour.Properties.copy(Blocks.BASALT)
+                .randomTicks()
+                .strength(5, 4));
+        this.defaultBlockState().setValue(MODE, RotationMode.STATIC);
     }
 
     @Override
@@ -39,13 +78,15 @@ public class MoyaiBlock extends FallingBlock {
 
     @Override
     public BlockState getStateForPlacement(BlockPlaceContext pContext) {
-        return this.defaultBlockState().setValue(FACING, pContext.getHorizontalDirection().getOpposite());
+        return this.defaultBlockState().setValue(MODE, RotationMode.STATIC)
+                .setValue(FACING, pContext.getHorizontalDirection().getOpposite());
     }
 
     @Override
     protected void createBlockStateDefinition(StateDefinition.Builder<Block, BlockState> pBuilder) {
         super.createBlockStateDefinition(pBuilder);
         pBuilder.add(FACING);
+        pBuilder.add(MODE);
     }
 
     private static long LAST_GREETED_TIME = -24000;
@@ -95,6 +136,126 @@ public class MoyaiBlock extends FallingBlock {
     public void onLand(Level level, BlockPos pos, BlockState p_48795_, BlockState state, FallingBlockEntity blockEntity) {
         if (!blockEntity.isSilent()) {
             level.levelEvent(1045, pos, 0);
+            this.trySpawnGolem(level, pos, false);
         }
     }
+
+    //golem
+
+
+    @Override
+    public void setPlacedBy(Level pLevel, BlockPos pPos, BlockState pState, @org.jetbrains.annotations.Nullable LivingEntity pPlacer, ItemStack pStack) {
+        super.setPlacedBy(pLevel, pPos, pState, pPlacer, pStack);
+        pLevel.scheduleTick(pPos, this, this.getDelayAfterPlace());
+    }
+
+    @Override
+    public void onPlace(BlockState pState, Level pLevel, BlockPos pPos, BlockState pOldState, boolean pIsMoving) {
+        boolean golem = false;
+        if (!pOldState.is(pState.getBlock())) {
+            golem = this.trySpawnGolem(pLevel, pPos, true);
+        }
+    }
+
+    public boolean canSpawnGolem(LevelReader pLevel, BlockPos pPos) {
+        return this.getOrCreateIronGolemBase().find(pLevel, pPos) != null;
+    }
+
+    private boolean trySpawnGolem(Level pLevel, BlockPos pPos, boolean playerCreated) {
+        var pattern = this.getOrCreateIronGolemFull();
+        BlockPattern.BlockPatternMatch patternMatch = pattern.find(pLevel, pPos);
+        if (patternMatch != null) {
+            for (int j = 0; j < pattern.getWidth(); ++j) {
+                for (int k = 0; k < pattern.getHeight(); ++k) {
+                    BlockInWorld matchBlock = patternMatch.getBlock(j, k, 0);
+                    pLevel.setBlock(matchBlock.getPos(), Blocks.AIR.defaultBlockState(), 2);
+                    pLevel.levelEvent(2001, matchBlock.getPos(), Block.getId(matchBlock.getState()));
+                }
+            }
+
+            BlockPos blockpos = patternMatch.getBlock(1, 2, 0).getPos();
+            IronGolem irongolem = EntityType.IRON_GOLEM.create(pLevel);
+            irongolem.setPlayerCreated(playerCreated);
+            irongolem.setItemSlot(EquipmentSlot.HEAD, new ItemStack(this));
+
+            irongolem.moveTo((double) blockpos.getX() + 0.5D, (double) blockpos.getY() + 0.05D, (double) blockpos.getZ() + 0.5D, 0.0F, 0.0F);
+            pLevel.addFreshEntity(irongolem);
+
+            for (ServerPlayer player : pLevel.getEntitiesOfClass(ServerPlayer.class, irongolem.getBoundingBox().inflate(5.0D))) {
+                CriteriaTriggers.SUMMONED_ENTITY.trigger(player, irongolem);
+            }
+
+            for (int i1 = 0; i1 < pattern.getWidth(); ++i1) {
+                for (int j1 = 0; j1 < pattern.getHeight(); ++j1) {
+                    BlockInWorld matchBlock = patternMatch.getBlock(i1, j1, 0);
+                    pLevel.blockUpdated(matchBlock.getPos(), Blocks.AIR);
+                }
+            }
+            return true;
+        }
+        return false;
+    }
+
+    private BlockPattern getOrCreateIronGolemBase() {
+        if (this.ironGolemBase == null) {
+            this.ironGolemBase = BlockPatternBuilder.start().aisle("~ ~", "###", "~#~").where('#', BlockInWorld.hasState(BlockStatePredicate.forBlock(Blocks.IRON_BLOCK))).where('~', BlockInWorld.hasState(BlockMaterialPredicate.forMaterial(Material.AIR))).build();
+        }
+
+        return this.ironGolemBase;
+    }
+
+    private BlockPattern getOrCreateIronGolemFull() {
+        if (this.ironGolemFull == null) {
+            this.ironGolemFull = BlockPatternBuilder.start().aisle("~^~", "###", "~#~").where('^', BlockInWorld.hasState(b -> b.getBlock() == this)).where('#', BlockInWorld.hasState(BlockStatePredicate.forBlock(Blocks.IRON_BLOCK))).where('~', BlockInWorld.hasState(BlockMaterialPredicate.forMaterial(Material.AIR))).build();
+        }
+
+        return this.ironGolemFull;
+    }
+
+    @Nullable
+    private BlockPattern ironGolemBase;
+    @Nullable
+    private BlockPattern ironGolemFull;
+
+    @Override
+    public boolean isRandomlyTicking(BlockState pState) {
+        return pState.getValue(MODE) == RotationMode.STATIC;
+    }
+
+    @Override
+    public void randomTick(BlockState pState, ServerLevel pLevel, BlockPos pPos, Random pRandom) {
+        //only on full moon
+        if (pLevel.getMoonPhase() == 0 && pLevel.isNight()) {
+            if (pLevel.random.nextBoolean()) {
+                pLevel.setBlock(pPos, pState.setValue(MODE, RotationMode.ROTATING_LEFT)
+                        .setValue(FACING, pState.getValue(FACING).getCounterClockWise()), Block.UPDATE_CLIENTS);
+            } else {
+                pLevel.setBlock(pPos, pState.setValue(MODE, RotationMode.ROTATING_RIGHT)
+                        .setValue(FACING, pState.getValue(FACING).getClockWise()), Block.UPDATE_CLIENTS);
+            }
+
+            pLevel.playSound(null, pPos, Moyai.MOYAI_ROTATE.get(), SoundSource.BLOCKS, 1, 1);
+
+            pLevel.scheduleTick(pPos, this, 2 * 20 + pLevel.getRandom().nextInt(40));
+        }
+        super.randomTick(pState, pLevel, pPos, pRandom);
+    }
+
+    @Override
+    public void tick(BlockState pState, ServerLevel pLevel, BlockPos pPos, Random pRand) {
+
+        var mode = pState.getValue(MODE);
+        if (mode != RotationMode.STATIC) {
+            if (mode == RotationMode.ROTATING_RIGHT) {
+                pLevel.setBlockAndUpdate(pPos, pState.setValue(MODE, RotationMode.STATIC)
+                        .setValue(FACING, pState.getValue(FACING).getCounterClockWise()));
+            } else {
+                pLevel.setBlockAndUpdate(pPos, pState.setValue(MODE, RotationMode.STATIC)
+                        .setValue(FACING, pState.getValue(FACING).getClockWise()));
+            }
+            pLevel.playSound(null, pPos, Moyai.MOYAI_ROTATE.get(), SoundSource.BLOCKS, 1, 0.8f);
+        }
+        super.tick(pState, pLevel, pPos, pRand);
+    }
+
 }

@@ -1,0 +1,22 @@
+{
+  "record.moyai_boom": {
+    "category": "record",
+    "sounds": [
+      {
+        "name": "moyai:record/moyai_boom",
+        "stream": false
+      }
+    ],
+    "subtitle": "subtitle.moyai.record.moyai_boom"
+  },
+  "block.moyai_rotate": {
+    "category": "block",
+    "sounds": [
+      {
+        "name": "moyai:block/moyai_rotate",
+        "stream": false
+      }
+    ],
+    "subtitle": "subtitle.moyai.block.moyai_rotate"
+  }
+}

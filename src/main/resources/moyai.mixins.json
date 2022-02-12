@@ -1,0 +1,16 @@
+
+{
+  "minVersion": "0.8",
+  "required": true,
+  "compatibilityLevel": "JAVA_16",
+  "refmap": "moyai.refmap.json",
+  "package": "net.mehvahdjukaar.moyai.mixins",
+  "mixins": [
+  ],
+  "client": [
+    "IronGolemModelMixin"
+  ],
+  "injectors": {
+    "defaultRequire": 1
+  }
+}
