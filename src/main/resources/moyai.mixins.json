@@ -8,7 +8,7 @@
   "mixins": [
   ],
   "client": [
-    "IronGolemModelMixin"
+    "IronGolemLayerMixin"
   ],
   "injectors": {
     "defaultRequire": 1

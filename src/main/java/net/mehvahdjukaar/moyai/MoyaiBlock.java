@@ -3,7 +3,9 @@ package net.mehvahdjukaar.moyai;
 import net.minecraft.advancements.CriteriaTriggers;
 import net.minecraft.core.BlockPos;
 import net.minecraft.core.Direction;
+import net.minecraft.core.particles.ParticleTypes;
 import net.minecraft.network.chat.TranslatableComponent;
+import net.minecraft.resources.ResourceLocation;
 import net.minecraft.server.level.ServerLevel;
 import net.minecraft.server.level.ServerPlayer;
 import net.minecraft.server.level.WorldGenRegion;
@@ -21,7 +23,6 @@ import net.minecraft.world.item.ItemStack;
 import net.minecraft.world.item.context.BlockPlaceContext;
 import net.minecraft.world.level.BlockGetter;
 import net.minecraft.world.level.Level;
-import net.minecraft.world.level.LevelAccessor;
 import net.minecraft.world.level.LevelReader;
 import net.minecraft.world.level.block.*;
 import net.minecraft.world.level.block.state.BlockBehaviour;
@@ -37,6 +38,7 @@ import net.minecraft.world.level.block.state.properties.DirectionProperty;
 import net.minecraft.world.level.block.state.properties.EnumProperty;
 import net.minecraft.world.level.material.Material;
 import net.minecraft.world.phys.BlockHitResult;
+import net.minecraftforge.registries.ForgeRegistries;
 
 import javax.annotation.Nullable;
 import java.util.Locale;
@@ -47,7 +49,7 @@ public class MoyaiBlock extends FallingBlock {
     public static final EnumProperty<RotationMode> MODE = EnumProperty.create("mode", RotationMode.class);
 
 
-    private enum RotationMode implements StringRepresentable {
+    public enum RotationMode implements StringRepresentable {
         ROTATING_LEFT, ROTATING_RIGHT, STATIC;
 
         public String toString() {
@@ -91,14 +93,40 @@ public class MoyaiBlock extends FallingBlock {
 
     private static long LAST_GREETED_TIME = -24000;
 
+    public static boolean maybeEatSoap(ItemStack stack, BlockState state, BlockPos pos, Level level, @Nullable Player player) {
+        if (stack.getItem().getRegistryName().getPath().equals("soap")) {
+
+            BlockPos facingPos = pos.relative(state.getValue(FACING));
+            if (level.getBlockState(facingPos).isAir()) {
+                if (player == null || player.isCreative()) stack.shrink(1);
+                if (level.isClientSide && player != null) {
+                    player.displayClientMessage(new TranslatableComponent("message.moyai.soap"), true);
+                } else {
+                    level.setBlockAndUpdate(facingPos, ForgeRegistries.BLOCKS.getValue(
+                            new ResourceLocation("supplementaries:bubble_block")).defaultBlockState());
+                }
+                return true;
+            }
+        }
+        return false;
+    }
+
     @Override
     public InteractionResult use(BlockState pState, Level pLevel, BlockPos pPos, Player pPlayer, InteractionHand pHand, BlockHitResult pHit) {
+        ItemStack stack = pPlayer.getItemInHand(pHand);
+        if (maybeEatSoap(stack, pState, pPos, pLevel, pPlayer)) {
+            //TODO: finish this
+            return InteractionResult.sidedSuccess(pLevel.isClientSide);
+        }
+
         if (pLevel.isClientSide) {
             long time = pLevel.getDayTime();
             if (Math.abs(time - LAST_GREETED_TIME) >= 12000) {
                 LAST_GREETED_TIME = time;
                 pPlayer.displayClientMessage(new TranslatableComponent("message.moyai.angelo"), true);
+                pPlayer.swing(pHand);
             }
+            //doest return success since its client only and we want to be able to place blocks with sounds & stuff
             // return InteractionResult.SUCCESS;
         }
 
@@ -258,4 +286,13 @@ public class MoyaiBlock extends FallingBlock {
         super.tick(pState, pLevel, pPos, pRand);
     }
 
+    @Override
+    public boolean triggerEvent(BlockState pState, Level pLevel, BlockPos pPos, int pId, int pParam) {
+        if (pId == 0) {
+            pLevel.addParticle(ParticleTypes.NOTE, (double) pPos.getX() + 0.5D, (double) pPos.getY() + 1.2D + 1, (double) pPos.getZ() + 0.5D, (double) pParam / 24.0D, 0.0D, 0.0D);
+            if (pLevel.isClientSide) ClientStuff.Rumbler.setShaking(pPos, pParam);
+            return true;
+        }
+        return super.triggerEvent(pState, pLevel, pPos, pId, pParam);
+    }
 }

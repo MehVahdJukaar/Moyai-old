@@ -9,15 +9,19 @@ import net.minecraft.world.item.ItemStack;
 import org.spongepowered.asm.mixin.Final;
 import org.spongepowered.asm.mixin.Mixin;
 import org.spongepowered.asm.mixin.Shadow;
+import org.spongepowered.asm.mixin.injection.At;
+import org.spongepowered.asm.mixin.injection.Inject;
+import org.spongepowered.asm.mixin.injection.callback.CallbackInfo;
 
 @Mixin(IronGolemModel.class)
-public abstract class IronGolemModelMixin<T extends IronGolem> extends HierarchicalModel<T> {
+public abstract class IronGolemLayerMixin<T extends IronGolem> extends HierarchicalModel<T> {
 
     @Shadow @Final private ModelPart head;
 
-    @Override
-    public void prepareMobModel(T pEntity, float pLimbSwing, float pLimbSwingAmount, float pPartialTick) {
-        super.prepareMobModel(pEntity, pLimbSwing, pLimbSwingAmount, pPartialTick);
+    @Inject(method = "prepareMobModel(Lnet/minecraft/world/entity/animal/IronGolem;FFF)V", at = @At("HEAD"))
+    public void prepareMobModel(T pEntity, float pLimbSwing, float pLimbSwingAmount, float pPartialTick, CallbackInfo cb) {
         this.head.visible = pEntity.getItemBySlot(EquipmentSlot.HEAD).isEmpty();
     }
+
+
 }

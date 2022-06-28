@@ -27,7 +27,7 @@ mixin {
 }
 
 
-version = '1.18-1.1.0'
+version = '1.18.2-1.1.4'
 group = 'net.mehvahdjukaar.moyai' // http://maven.apache.org/guides/mini/guide-naming-conventions.html
 archivesBaseName = 'moyai'
 
@@ -36,8 +36,8 @@ sourceCompatibility = targetCompatibility = compileJava.sourceCompatibility = co
 println('Java: ' + System.getProperty('java.version') + ' JVM: ' + System.getProperty('java.vm.version') + '(' + System.getProperty('java.vendor') + ') Arch: ' + System.getProperty('os.arch'))
 minecraft {
 
-    //mappings channel: 'official', version: '1.18'
-    mappings channel: 'parchment', version: '2021.12.19-1.18.1'
+    mappings channel: 'official', version: '1.18.2'
+    //mappings channel: 'parchment', version: '2021.12.19-1.18.1'
 
 
     accessTransformer = file('src/main/resources/META-INF/accesstransformer.cfg')
@@ -107,12 +107,12 @@ dependencies {
     // that the dep is a ForgeGradle 'patcher' dependency. And it's patches will be applied.
     // The userdev artifact is a special name and will get all sorts of transformations applied to it.
 
-    minecraft 'net.minecraftforge:forge:1.18.1-39.0.14'
+    minecraft 'net.minecraftforge:forge:1.18.2-40.0.3'
     //minecraft 'net.minecraftforge:forge:1.16.5-36.1.0'
 
 
-    implementation fg.deobf("curse.maven:configured-457570:3546349")
-    implementation fg.deobf("curse.maven:jei-238222:3550020")
+  //  implementation fg.deobf("curse.maven:configured-457570:3546349")
+   // implementation fg.deobf("curse.maven:jei-238222:3550020")
   //  implementation fg.deobf("curse.maven:alexs-mobs-426558:3603683")
     annotationProcessor 'org.spongepowered:mixin:0.8.5:processor'
 }
