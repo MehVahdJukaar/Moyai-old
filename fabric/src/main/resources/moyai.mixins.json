@@ -1,0 +1,16 @@
+{
+  "required": true,
+  "minVersion": "0.8",
+  "package": "net.mehvahdjukaar.moyai.mixins.fabric",
+  "compatibilityLevel": "JAVA_17",
+  "client": [
+    "IronGolemLayerMixin",
+    "IronGolemRendererMixin"
+  ],
+  "mixins": [
+    "NoteBlockSoundMixin"
+  ],
+  "injectors": {
+    "defaultRequire": 1
+  }
+}

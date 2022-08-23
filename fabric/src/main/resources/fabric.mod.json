@@ -1,0 +1,31 @@
+{
+  "schemaVersion": 1,
+  "id": "moyai",
+  "version": "${version}",
+  "name": "moyai",
+  "description": "moyai bottom text",
+  "authors": [
+    "Mehvahdjukaar, Plantkillable"
+  ],
+  "contact": {
+    "homepage": "https://fabricmc.net/",
+    "sources": "https://github.com/FabricMC/fabric-example-mod"
+  },
+  "license": "ARR",
+  "icon": "icon.png",
+  "environment": "*",
+  "entrypoints": {
+    "main": [
+      "net.mehvahdjukaar.moyai.fabric.MoyaiFabric"
+    ]
+  },
+  "mixins": [
+    "${mod_id}.mixins.json",
+    "${mod_id}-common.mixins.json"
+  ],
+  "depends": {
+    "fabric": "*",
+    "minecraft": ">=1.19.2",
+    "moonlight": ">=1.19.2-2.0.16"
+  }
+}
