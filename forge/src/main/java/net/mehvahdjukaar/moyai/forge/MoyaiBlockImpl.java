@@ -12,5 +12,6 @@ public class MoyaiBlockImpl {
 
     public static void setShaking(BlockPos pPos, int pParam) {
         MoyaiClientForge.Rumbler.setShaking(pPos, pParam);
+
     }
 }
