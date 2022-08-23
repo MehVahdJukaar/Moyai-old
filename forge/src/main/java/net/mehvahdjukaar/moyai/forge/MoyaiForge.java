@@ -2,6 +2,7 @@ package net.mehvahdjukaar.moyai.forge;
 
 import net.mehvahdjukaar.moyai.Moyai;
 import net.minecraftforge.common.MinecraftForge;
+import net.minecraftforge.common.world.ForgeBiomeModifiers;
 import net.minecraftforge.event.level.NoteBlockEvent;
 import net.minecraftforge.fml.common.Mod;
 import net.minecraftforge.fml.event.lifecycle.FMLCommonSetupEvent;
