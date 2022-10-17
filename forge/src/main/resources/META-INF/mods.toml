@@ -11,7 +11,7 @@ modId="moyai" #mandatory
 
 version = "${version}"
 
-displayName="Advancement Frames" #mandatory
+displayName="Moyai" #mandatory
 
 logoFile="icon.png" #optional
 
